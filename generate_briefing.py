@@ -11,6 +11,7 @@ AI Provider options (set AI_PROVIDER env var):
 """
 import os
 import json
+import time
 import requests
 from datetime import datetime, timedelta
 
@@ -91,6 +92,16 @@ def search_news(query, count=6):
         )
         if r.status_code == 200:
             return r.json().get('results', [])
+        elif r.status_code == 429:
+            print(f"  Brave 429 rate limit, waiting 2s...")
+            time.sleep(2)
+            # retry once
+            r2 = requests.get(
+                'https://api.search.brave.com/res/v1/news/search',
+                headers=headers, params=params, timeout=15
+            )
+            if r2.status_code == 200:
+                return r2.json().get('results', [])
         else:
             print(f"  Brave API {r.status_code}: {r.text[:200]}")
     except Exception as e:
@@ -126,6 +137,7 @@ def collect_news(sent_urls):
         articles = []
         seen_urls = set(sent_urls.keys())
         for query in queries:
+            time.sleep(1.2)   # Brave free tier: max 1 req/sec
             results = search_news(query, count=5)
             for r in results:
                 url = r.get('url', '')
