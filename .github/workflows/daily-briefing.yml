@@ -1,0 +1,44 @@
+name: Daily Briefing
+
+on:
+  schedule:
+    # 09:30 UTC = 17:30 SGT / 北京时间 (UTC+8)
+    - cron: '30 9 * * *'
+  workflow_dispatch:
+    # 允许手动触发（测试用）
+
+jobs:
+  send-briefing:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # 允许 commit 回 dedup 文件
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install anthropic requests
+
+      - name: Generate and send briefing
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BRAVE_API_KEY:     ${{ secrets.BRAVE_API_KEY }}
+          RESEND_API_KEY:    ${{ secrets.RESEND_API_KEY }}
+          RECIPIENT:         ziyanjiang1116@gmail.com
+        run: python generate_briefing.py
+
+      - name: Commit dedup history and HTML archive
+        run: |
+          git config user.name  "Daily Briefing Bot"
+          git config user.email "actions@github.com"
+          git add sent_articles.json archives/
+          git diff --staged --quiet || git commit -m "briefing: $(date -u +%Y-%m-%d)"
+          git push
