@@ -2,8 +2,8 @@ name: Daily Briefing
 
 on:
   schedule:
-    # 09:30 UTC = 17:30 SGT / 北京时间 (UTC+8)
-    - cron: '30 9 * * *'
+    # 01:30 UTC = 09:30 SGT / 北京时间 (UTC+8)
+    - cron: '30 1 * * *'
   workflow_dispatch:
     # 允许手动触发（测试用）
 
@@ -25,14 +25,16 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install anthropic requests
+        # google-generativeai = Gemini (free); switch to anthropic / openai if preferred
+        run: pip install google-generativeai requests
 
       - name: Generate and send briefing
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          BRAVE_API_KEY:     ${{ secrets.BRAVE_API_KEY }}
-          RESEND_API_KEY:    ${{ secrets.RESEND_API_KEY }}
-          RECIPIENT:         ziyanjiang1116@gmail.com
+          AI_PROVIDER:    gemini          # 免费方案；改成 anthropic 或 openai 可切换
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BRAVE_API_KEY:  ${{ secrets.BRAVE_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RECIPIENT:      ziyanjiang1116@gmail.com
         run: python generate_briefing.py
 
       - name: Commit dedup history and HTML archive

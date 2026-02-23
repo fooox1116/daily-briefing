@@ -1,23 +1,61 @@
 #!/usr/bin/env python3
 """
 Daily Briefing Generator
-Searches news via Brave API, generates HTML via Claude API, sends via Resend API.
+Searches news via Brave API, generates HTML via AI API, sends via Resend API.
 Designed to run in GitHub Actions (cloud, no Mac needed).
+
+AI Provider options (set AI_PROVIDER env var):
+  gemini   — Google Gemini 1.5 Flash (FREE, recommended)
+  openai   — OpenAI GPT-4o-mini (~$0.004/day)
+  anthropic — Claude 3.5 Sonnet (~$0.08/day)
 """
 import os
 import json
 import requests
 from datetime import datetime, timedelta
-import anthropic
 
 # ── Config ──────────────────────────────────────────────────────────────
-BRAVE_API_KEY    = os.environ['BRAVE_API_KEY']
-RESEND_API_KEY   = os.environ['RESEND_API_KEY']
-ANTHROPIC_API_KEY = os.environ['ANTHROPIC_API_KEY']
-RECIPIENT        = os.environ.get('RECIPIENT', 'ziyanjiang1116@gmail.com')
-DEDUP_FILE       = 'sent_articles.json'
+BRAVE_API_KEY  = os.environ['BRAVE_API_KEY']
+RESEND_API_KEY = os.environ['RESEND_API_KEY']
+RECIPIENT      = os.environ.get('RECIPIENT', 'ziyanjiang1116@gmail.com')
+DEDUP_FILE     = 'sent_articles.json'
 
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+# AI provider selection — default: gemini (free)
+AI_PROVIDER = os.environ.get('AI_PROVIDER', 'gemini').lower()
+
+def make_ai_client():
+    if AI_PROVIDER == 'gemini':
+        import google.generativeai as genai
+        genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+        return genai.GenerativeModel('gemini-2.0-flash')
+    elif AI_PROVIDER == 'openai':
+        from openai import OpenAI
+        return OpenAI(api_key=os.environ['OPENAI_API_KEY'])
+    elif AI_PROVIDER == 'anthropic':
+        import anthropic
+        return anthropic.Anthropic(api_key=os.environ['ANTHROPIC_API_KEY'])
+    else:
+        raise ValueError(f"Unknown AI_PROVIDER: {AI_PROVIDER}")
+
+def call_ai(client, prompt):
+    """Unified AI call — returns generated text string."""
+    if AI_PROVIDER == 'gemini':
+        response = client.generate_content(prompt)
+        return response.text
+    elif AI_PROVIDER == 'openai':
+        response = client.chat.completions.create(
+            model='gpt-4o-mini',
+            messages=[{'role': 'user', 'content': prompt}],
+            max_tokens=8000,
+        )
+        return response.choices[0].message.content
+    elif AI_PROVIDER == 'anthropic':
+        response = client.messages.create(
+            model='claude-3-5-sonnet-20241022',
+            max_tokens=8096,
+            messages=[{'role': 'user', 'content': prompt}],
+        )
+        return response.content[0].text
 
 # ── Deduplication ────────────────────────────────────────────────────────
 def load_sent_articles():
@@ -107,7 +145,7 @@ def collect_news(sent_urls):
     return all_articles
 
 # ── Claude HTML Generation ───────────────────────────────────────────────
-def generate_html(articles_by_category, today):
+def generate_html(client, articles_by_category, today):
     articles_json = json.dumps(articles_by_category, ensure_ascii=False, indent=2)
 
     prompt = f"""Today is {today}. Below are raw news articles in 4 categories collected via Brave Search.
@@ -141,12 +179,7 @@ HTML DESIGN SPEC:
 
 Return ONLY the complete HTML document (starting with <!DOCTYPE html>), no markdown, no explanation."""
 
-    message = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
-        max_tokens=8096,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return message.content[0].text
+    return call_ai(client, prompt)
 
 # ── Send Email via Resend ─────────────────────────────────────────────────
 def send_email(html_content, date_str):
@@ -186,9 +219,10 @@ def main():
         print("No new articles — skipping send.")
         return
 
-    # Generate HTML with Claude
-    print("\nGenerating HTML with Claude API...")
-    html = generate_html(articles, today)
+    # Generate HTML with AI
+    print(f"\nGenerating HTML with {AI_PROVIDER.upper()} API...")
+    ai_client = make_ai_client()
+    html = generate_html(ai_client, articles, today)
     print(f"HTML generated: {len(html):,} chars")
 
     # Save archive
