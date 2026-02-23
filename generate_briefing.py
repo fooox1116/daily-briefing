@@ -93,8 +93,8 @@ def search_news(query, count=6):
         if r.status_code == 200:
             return r.json().get('results', [])
         elif r.status_code == 429:
-            print(f"  Brave 429 rate limit, waiting 2s...")
-            time.sleep(2)
+            print(f"  Brave 429 rate limit, waiting 5s...")
+            time.sleep(5)
             # retry once
             r2 = requests.get(
                 'https://api.search.brave.com/res/v1/news/search',
@@ -102,6 +102,9 @@ def search_news(query, count=6):
             )
             if r2.status_code == 200:
                 return r2.json().get('results', [])
+            elif r2.status_code == 429:
+                print(f"  Brave 429 again, skipping query.")
+                return []
         else:
             print(f"  Brave API {r.status_code}: {r.text[:200]}")
     except Exception as e:
@@ -137,7 +140,7 @@ def collect_news(sent_urls):
         articles = []
         seen_urls = set(sent_urls.keys())
         for query in queries:
-            time.sleep(1.2)   # Brave free tier: max 1 req/sec
+            time.sleep(2)     # Brave free tier: max 1 req/sec, 2s buffer
             results = search_news(query, count=5)
             for r in results:
                 url = r.get('url', '')
