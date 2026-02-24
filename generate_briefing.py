@@ -26,9 +26,8 @@ AI_PROVIDER = os.environ.get('AI_PROVIDER', 'gemini').lower()
 
 def make_ai_client():
     if AI_PROVIDER == 'gemini':
-        import google.generativeai as genai
-        genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-        return genai.GenerativeModel('gemini-2.0-flash')
+        from google import genai
+        return genai.Client(api_key=os.environ['GEMINI_API_KEY'])
     elif AI_PROVIDER == 'openai':
         from openai import OpenAI
         return OpenAI(api_key=os.environ['OPENAI_API_KEY'])
@@ -41,7 +40,8 @@ def make_ai_client():
 def call_ai(client, prompt):
     """Unified AI call — returns generated text string."""
     if AI_PROVIDER == 'gemini':
-        response = client.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.0-flash', contents=prompt)
         return response.text
     elif AI_PROVIDER == 'openai':
         response = client.chat.completions.create(
