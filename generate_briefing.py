@@ -113,25 +113,26 @@ def search_news(query, count=6):
 
 def collect_news(sent_urls):
     categories = {
-        'AI': [
-            'artificial intelligence AI news today 2026',
-            'OpenAI Google DeepMind Anthropic news',
-            'AI startup funding model release 2026',
+        '监管 & 牌照': [
+            'crypto exchange license regulation approval 2026',
+            'MiCA crypto exchange compliance news 2026',
+            'Hong Kong SFC UAE VARA crypto license 2026',
+            'Turkey MASAK crypto exchange regulation 2026',
         ],
-        'VC': [
-            'venture capital startup funding raised million 2026',
-            'Series A B C D funding round announced 2026',
-            'unicorn IPO acquisition tech startup 2026',
+        '并购 & 融资': [
+            'crypto exchange acquisition merger deal 2026',
+            'crypto company fundraising Series funding round 2026',
+            'stablecoin payment company M&A investment 2026',
         ],
-        'Crypto': [
-            'bitcoin ethereum crypto news today 2026',
-            'DeFi blockchain Web3 stablecoin news 2026',
-            'crypto regulation SEC market 2026',
+        '稳定币 & 支付': [
+            'stablecoin regulation launch news 2026',
+            'crypto cross-border payment infrastructure news 2026',
+            'CBDC stablecoin bank adoption 2026',
         ],
-        'Macro': [
-            'Federal Reserve interest rates inflation US economy 2026',
-            'US GDP employment tariff trade macro economy 2026',
-            'China Europe economy geopolitics market 2026',
+        '市场动态': [
+            'Bitcoin Ethereum crypto market news 2026',
+            'CEX DEX trading volume market share 2026',
+            'crypto macro economy regulation market impact 2026',
         ],
     }
 
@@ -164,33 +165,34 @@ def generate_html(client, articles_by_category, today):
     articles_json = json.dumps(articles_by_category, ensure_ascii=False, indent=2)
 
     prompt = f"""Today is {today}. Below are raw news articles in 4 categories collected via Brave Search.
-Generate a beautiful Chinese-language daily briefing as a COMPLETE, SELF-CONTAINED HTML email.
+Generate a Chinese-language crypto industry briefing as a COMPLETE, SELF-CONTAINED HTML email.
+This is for an investment professional at MEXC Ventures focused on CEX/DEX M&A, stablecoin infrastructure, and crypto regulation.
 
 RAW ARTICLES:
 {articles_json}
 
 REQUIREMENTS:
 1. Write a 2-3 sentence Chinese summary for each article. Translate the title to Chinese.
-2. Importance levels:
-   - 🔥 高 (HIGH): funding ≥$50M, major Fed/policy action, large market move (±5%+)
-   - ⭐ 中 (MEDIUM): notable news, moderate funding, regular updates
-   - 📰 低 (LOW): minor news
-3. EVERY article must have a "🔗 阅读原文" hyperlink using the article's URL.
-4. Sections: 🤖 人工智能 | 💰 投融资/VC | ₿ 加密货币/Crypto | 📈 宏观经济
-5. Skip articles that are clearly older than 48 hours.
+2. Keep these terms in English: CEX, DEX, MiCA, VARA, MASAK, M&A, DeFi, TVL, AUM, IPO, OTC, NDA, DD.
+3. Importance levels:
+   - 🔥 高 (HIGH): major regulatory decision, deal ≥$50M, significant market event
+   - ⭐ 中 (MEDIUM): notable news, smaller deals, regulatory updates
+   - 📰 低 (LOW): minor updates, background news
+4. EVERY article must have a "🔗 阅读原文" hyperlink using the article's URL.
+5. Sections: 🏛️ 监管 & 牌照 | 🤝 并购 & 融资 | 💳 稳定币 & 支付 | 📊 市场动态
 6. NO footer, NO "Powered by", NO contact info, NO config paths.
 
 HTML DESIGN SPEC:
-- Dark gradient header: background linear-gradient(135deg,#1a1a2e,#0f3460); white text; "📰 Daily Briefing" h1; date subtitle
-- Stats bar: light gray bg, shows total count + HIGH/MEDIUM/LOW counts
-- Section headers: emoji + bold title + bottom border
-- Article cards: border-radius:10px; colored left border (red=#e53935 HIGH, orange=#fb8c00 MEDIUM, green=#43a047 LOW)
-- Importance tag: small colored pill chip above title
-- Chinese title: 15px bold; English title: 11px italic gray below it
-- Summary: 13px, color #444
-- Footer of each card: source name (left) + 🔗 阅读原文 blue pill button (right)
-- Max-width: 680px, centered, white bg, subtle box-shadow, border-radius:16px
-- Mobile responsive
+- Dark gradient header: background linear-gradient(135deg,#1a1a2e,#0f3460); white text; "🔐 加密行业日报 · Industry Pulse" h1; date + "每日发布" subtitle in #a0c4ff
+- Stats bar: light gray bg (#f8f9fa), shows total article count and "覆盖过去5天"
+- Section headers: emoji + bold title + bottom border #eee
+- Article cards: border-radius:10px; colored left border (red=#e53935 HIGH, orange=#fb8c00 MEDIUM, green=#43a047 LOW); box-shadow
+- Importance badge: small colored pill (高: bg #fdecea text #c62828 | 中: bg #fff3e0 text #e65100 | 低: bg #e8f5e9 text #2e7d32)
+- Chinese title: 15px bold #1a1a2e; English title: 11px italic #999 below it
+- Summary: 13px, color #444, line-height 1.65
+- Card footer: source name left (11px #aaa) + 🔗 阅读原文 blue pill button right (#1a73e8)
+- Max-width: 680px, centered, white bg, border-radius:16px, box-shadow
+- Mobile responsive @media max-width 600px
 
 Return ONLY the complete HTML document (starting with <!DOCTYPE html>), no markdown, no explanation."""
 
@@ -205,7 +207,7 @@ def send_email(html_content, date_str):
     payload = {
         "from":    "Daily Briefing <briefing@resend.dev>",
         "to":      [RECIPIENT],
-        "subject": f"📰 Daily Briefing · {date_str}",
+        "subject": f"🔐 加密行业日报 · Industry Pulse · {date_str}",
         "html":    html_content,
     }
     r = requests.post('https://api.resend.com/emails',

@@ -2,7 +2,7 @@ name: Daily Briefing
 
 on:
   schedule:
-    # 01:30 UTC = 09:30 SGT / 北京时间 (UTC+8)
+    # 01:30 UTC = 21:30 EDT (New York) / 09:30 Beijing
     - cron: '30 1 * * *'
   workflow_dispatch:
     # 允许手动触发（测试用）
